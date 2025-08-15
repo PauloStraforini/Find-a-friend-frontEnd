@@ -1,23 +1,65 @@
+"use client"
+
 import type React from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { useMutation } from "@tanstack/react-query"
+import { singIn } from "@/api/sing-in"
+import z from "zod"
+
+const signInForm = z.object({
+  registration: z.string().min(6),
+  password: z.string().min(6),
+})
+
+type SignInForm = z.infer<typeof signInForm>
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
+  const mutation = useMutation({
+    mutationFn: (data: SignInForm) => singIn(data),
+    onSuccess: () => {
+      toast.success("Login realizado com sucesso! 🎉")
+    },
+    onError: () => {
+      toast.error("Erro ao realizar login")
+    },
+  })
+
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    const form = e.currentTarget
+    const formData = {
+      email: (form.email as HTMLInputElement).value,
+      password: (form.password as HTMLInputElement).value,
+    }
+
+    const parse = signInForm.safeParse(formData)
+
+    if (!parse.success) {
+      toast.error("Email ou senha inválidos!")
+      return
+    }
+
+    mutation.mutate(parse.data)
+  }
+
   return (
     <div className={cn("h-full w-full", className)} {...props}>
       <div className="h-full w-full grid md:grid-cols-2">
         <div className="flex items-center justify-center p-6 md:p-8 bg-background">
-          <form className="w-full max-w-md">
+          <form className="w-full max-w-md" onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-2xl font-bold">Seja Bem vindo</h1>
                 <p className="text-muted-foreground text-balance">Faça Login na sua conta</p>
               </div>
               <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Label htmlFor="registration">Matrícula</Label>
+                <Input name="Matrícula" placeholder="123456" required />
               </div>
               <div className="grid gap-3">
                 <div className="flex items-center">
@@ -26,12 +68,16 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                     Esqueçeu a senha?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" name="password" type="password" required />
               </div>
-              <Button type="submit" className="w-full cursor-pointer bg-blue-400 hover:bg-blue-700">
-                Login
+              <Button
+                type="submit"
+                className="w-full cursor-pointer bg-blue-400 hover:bg-blue-700"
+                disabled={mutation.isPending}
+              >
+                {mutation.isPending ? "Entrando..." : "Login"}
               </Button>
-              {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-background text-muted-foreground relative z-10 px-2">Or continue with</span>
               </div>
               <div className="grid grid-cols-3 gap-4">
@@ -62,9 +108,9 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
                   </svg>
                   <span className="sr-only">Login with Meta</span>
                 </Button>
-              </div> */}
+              </div>
               <div className="text-center text-sm">
-               Não tem conta? {" "}
+                Não tem conta?{" "}
                 <a href="#" className="underline underline-offset-4">
                   Criar conta
                 </a>
